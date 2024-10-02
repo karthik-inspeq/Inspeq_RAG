@@ -3,6 +3,8 @@ langchain
 langchain-openai
 langchain-community
 PyPDF2
+inspeqai
+python-dotenv
 # chromadb
 # faiss-cpu
 # tiktoken

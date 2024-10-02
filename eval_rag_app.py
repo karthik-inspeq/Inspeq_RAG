@@ -9,6 +9,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from eval_metrics import * 
 
 if 'api_key' not in st.session_state: st.session_state['api_key'] = None
+if 'INSPEQ_API_KEY' not in st.session_state: st.session_state['INSPEQ_API_KEY'] = None
+if 'INSPEQ_PROJECT_ID' not in st.session_state: st.session_state['INSPEQ_PROJECT_ID'] = None
 if 'user_turn' not in st.session_state: st.session_state['user_turn'] = False
 if 'pdf' not in st.session_state: st.session_state['pdf'] = None
 if "embed_model" not in st.session_state: st.session_state['embed_model'] = None
@@ -49,6 +51,8 @@ def get_conversational_chain():
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
+def get_inspeq_evaluation():
+    return 0
 
 @AppMetrics.measure_execution_time
 def llm_output(chain, docs, user_question):
@@ -66,9 +70,9 @@ def user_input(user_question):
     st.write("Reply: ", response["output_text"])
 
     ctx = ""
-    for item in contexts_with_scores:
-        if len(item.page_content.strip()):
-            ctx += f"<li>Similarity Score: {round(float(item.metadata['_distance']), 2)}<br>Context: {item.page_content}<br>&nbsp</li>"
+    # for item in contexts_with_scores:
+    #     if len(item.page_content.strip()):
+    #         ctx += f"<li>Similarity Score: {round(float(item.metadata['_distance']), 2)}<br>Context: {item.page_content}<br>&nbsp</li>"
 
     with st.expander("Click to see the context passed"):
         st.markdown(f"""<ol>{ctx}</ol>""", unsafe_allow_html=True)
@@ -147,6 +151,8 @@ def main():
     with st.sidebar:
         st.title("Menu:")
         st.session_state['api_key'] = st.text_input("Enter your OpenAI API Key:", type="password", key="api_key_input")
+        st.session_state['INSPEQ_API_KEY'] =  st.text_input("Enter your inspeq API key", type="password", key="inspeq_api_key")
+        st.session_state['INSPEQ_PROJECT_ID'] =  st.text_input("Enter your inspeq project ID:", type="password", key="inspeq_project_id")
 
         _ =  st.number_input("Top-K Contxets to fetch", min_value = 1, max_value = 50, value = 3, step = 1, key="top_k")
         _ = st.number_input("Chunk Length", min_value = 8, max_value = 4096, value = 512, step = 8, key="chunk_size")
@@ -191,11 +197,11 @@ def main():
                         })
 
                 with st.spinner("Calculating all the matrices. Please wait ...."):
-                    eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response)
+                    # eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response)
                     st.balloons()
 
                 # with st.expander("Click to see all the evaluation metrics"):
-                    st.json(eval_result)
+                    # st.json(eval_result)
 
 
 if __name__ == "__main__":
