@@ -90,9 +90,9 @@ def user_input(user_question):
     st.write("Reply: ", response["output_text"])
 
     ctx = ""
-    # for item in contexts_with_scores:
-    #     if len(item.page_content.strip()):
-    #         ctx += f"<li>Similarity Score: {round(float(item.metadata['_distance']), 2)}<br>Context: {item.page_content}<br>&nbsp</li>"
+    for item in contexts_with_scores:
+        if len(item.page_content.strip()):
+            ctx += f"<br>{item.page_content}<br>&nbsp</li>"
 
     with st.expander("Click to see the context passed"):
         st.markdown(f"""<ol>{ctx}</ol>""", unsafe_allow_html=True)
