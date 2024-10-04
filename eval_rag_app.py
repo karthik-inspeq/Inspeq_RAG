@@ -7,6 +7,7 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from eval_metrics import * 
+from inspeq.client import InspeqEval
 
 if 'api_key' not in st.session_state: st.session_state['api_key'] = None
 if 'INSPEQ_API_KEY' not in st.session_state: st.session_state['INSPEQ_API_KEY'] = None
@@ -15,9 +16,29 @@ if 'user_turn' not in st.session_state: st.session_state['user_turn'] = False
 if 'pdf' not in st.session_state: st.session_state['pdf'] = None
 if "embed_model" not in st.session_state: st.session_state['embed_model'] = None
 if "vector_store" not in st.session_state: st.session_state['vector_store'] = None
+if "metrics" not in st.session_state: st.session_state['metrics'] = None
 if "eval_models" not in st.session_state: st.session_state["eval_models"] = {"app_metrics": AppMetrics()}
+if "options" not in st.session_state: st.session_state['options'] = []
 
 st.set_page_config(page_title="Document Genie", layout="wide")
+
+def get_inspeq_evaluation(prompt, response, context, metric):
+    inspeq_eval = InspeqEval(inspeq_api_key=st.session_state['INSPEQ_API_KEY'], inspeq_project_id= st.session_state['INSPEQ_PROJECT_ID'])
+    input_data = [{
+    "prompt": prompt,
+    "response": response,
+    "context": context
+        }]
+    metrics_list = metric
+    try:
+        output = inspeq_eval.evaluate_llm_task(
+            metrics_list=metrics_list,
+            input_data=input_data,
+            task_name="capital_question"
+        )
+        return output
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -51,8 +72,6 @@ def get_conversational_chain():
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
-def get_inspeq_evaluation():
-    return 0
 
 @AppMetrics.measure_execution_time
 def llm_output(chain, docs, user_question):
@@ -80,61 +99,62 @@ def user_input(user_question):
     return contexts_with_scores, response["output_text"]
 
 
-def evaluate_all(query, context_lis, response):
-    guard =  st.session_state["eval_models"]["guards"]
-    stat =  st.session_state["eval_models"]["textstat"]
-    comp =  st.session_state["eval_models"]["comparison"]
+def evaluate_all(query, context_lis, response, metrics_list):
+    # guard =  st.session_state["eval_models"]["guards"]
+    # stat =  st.session_state["eval_models"]["textstat"]
+    # comp =  st.session_state["eval_models"]["comparison"]
     context = "\n\n".join(context_lis) if len(context_lis) else "no context"
     
     RESULT = {}
 
     RESULT["guards"] = {
-        "query_injection": guard.prompt_injection_classif(query),
-        "context_injection": guard.prompt_injection_classif(context),
-        "query_bias": guard.bias(query),
-        "context_bias": guard.bias(context),
-        "response_bias": guard.bias(response),
-        "query_regex": guard.detect_pattern(query),
-        "context_regex": guard.detect_pattern(context),
-        "response_regex": guard.detect_pattern(response),
-        "query_toxicity": guard.toxicity(query),
-        "context_toxicity": guard.toxicity(context),
-        "response_toxicity":  guard.toxicity(response),
-        "query_sentiment": guard.sentiment(query),
-        "query_polarity": guard.polarity(query),
-        "context_polarity":guard.polarity(context), 
-        "response_polarity":guard.polarity(response), 
-        "query_response_hallucination" : comp.hallucinations(query, response),
-        "context_response_hallucination" : comp.hallucinations(context, response),
-        "query_response_hallucination" : comp.contradiction(query, response),
-        "context_response_hallucination" : comp.contradiction(context, response),
+        "evaluations" : get_inspeq_evaluation(query, response, context, metrics_list)
+        # "query_injection": guard.prompt_injection_classif(query),
+        # "context_injection": guard.prompt_injection_classif(context),
+        # "query_bias": guard.bias(query),
+        # "context_bias": guard.bias(context),
+        # "response_bias": guard.bias(response),
+        # "query_regex": guard.detect_pattern(query),
+        # "context_regex": guard.detect_pattern(context),
+        # "response_regex": guard.detect_pattern(response),
+        # "query_toxicity": guard.toxicity(query),
+        # "context_toxicity": guard.toxicity(context),
+        # "response_toxicity":  guard.toxicity(response),
+        # "query_sentiment": guard.sentiment(query),
+        # "query_polarity": guard.polarity(query),
+        # "context_polarity":guard.polarity(context), 
+        # "response_polarity":guard.polarity(response), 
+        # "query_response_hallucination" : comp.hallucinations(query, response),
+        # "context_response_hallucination" : comp.hallucinations(context, response),
+        # "query_response_hallucination" : comp.contradiction(query, response),
+        # "context_response_hallucination" : comp.contradiction(context, response),
     }
 
-    RESULT["guards"].update(guard.harmful_refusal_guards(query, context, response))
+    # RESULT["guards"].update(guard.harmful_refusal_guards(query, context, response))
 
-    tmp = {}
-    for key, val in comp.ref_focussed_metrics(query, response).items():
-        tmp[f"query_response_{key}"] = val
+    # tmp = {}
+    # for key, val in comp.ref_focussed_metrics(query, response).items():
+    #     tmp[f"query_response_{key}"] = val
 
-    for key, val in comp.ref_focussed_metrics(context, response).items():
-        tmp[f"context_response_{key}"] = val
+    # for key, val in comp.ref_focussed_metrics(context, response).items():
+    #     tmp[f"context_response_{key}"] = val
     
-    RESULT["reference_based_metrics"] = tmp
+    # RESULT["reference_based_metrics"] = tmp
     
     
-    tmp = {}
-    for key, val in comp.string_similarity(query, response).items():
-        tmp[f"query_response_{key}"] = val
+    # tmp = {}
+    # for key, val in comp.string_similarity(query, response).items():
+    #     tmp[f"query_response_{key}"] = val
 
-    for key, val in comp.string_similarity(context, response).items():
-        tmp[f"context_response_{key}"] = val
+    # for key, val in comp.string_similarity(context, response).items():
+    #     tmp[f"context_response_{key}"] = val
     
-    RESULT["string_similarities"] = tmp
+    # RESULT["string_similarities"] = tmp
 
-    tmp = {}
-    for key, val in stat.calculate_text_stat(response).items():
-        tmp[f"result_{key}"] = val
-    RESULT["response_text_stats"] = tmp
+    # tmp = {}
+    # for key, val in stat.calculate_text_stat(response).items():
+    #     tmp[f"result_{key}"] = val
+    # RESULT["response_text_stats"] = tmp
 
     RESULT["execution_times"] = (st.session_state["eval_models"]["app_metrics"].exec_times)
     
@@ -185,8 +205,22 @@ def main():
                 contexts_with_scores, response = user_input(user_question)
         
             st.warning("There are 5 major types metrics computed below having multiple sub metrics. Also, 2 abstract classes are defined `LLMasEvaluator` (to use any LLM as a judge) and `TraditionalPipelines` (for Topics, NER, POS etc)", icon="🤖")
-            metric_calc = st.button("Load Models & Compute Evaluation Metrics")
-            if metric_calc:
+            list_of_metrics = ["RESPONSE_TONE", "ANSWER_RELEVANCE", "FACTUAL_CONSISTENCY", "CONCEPTUAL_SIMILARITY", "READABILITY", "COHERENCE", "CLARITY", 
+                                                                               "DIVERSITY", "CREATIVITY", "NARRATIVE_CONTINUITY", "GRAMMATICAL_CORRECTNESS", "PROMPT_INJECTION", 
+                                                                               "DATA_LEAKAGE", "INSECURE_OUTPUT", "INVISIBLE_TEXT", "TOXICITY", "BLEU_SCORE", "COMPRESSION_SCORE", 
+                                                                               "COSINE_SIMILARITY_SCORE", "FUZZY_SCORE", "METEOR_SCORE", "ROUGE_SCORE"]
+            # Create a form to batch widget interactions
+            with st.form(key="my_form"):
+                selected_metrics = st.multiselect(
+                    "Select the metrics to Evaluate",
+                    list_of_metrics,
+                    default=st.session_state["options"]
+                )
+                submit_button = st.form_submit_button(label="Evaluate Metrics")
+
+            # Process the form submission
+            if submit_button:
+                st.session_state["options"] = selected_metrics
                 if len(st.session_state["eval_models"]) <= 1:
                     st.session_state["eval_models"].update({
                         # "guards": IOGuards(),
@@ -195,13 +229,18 @@ def main():
                         # "llm_eval": LLMasEvaluator(),
                         # "traditional_pipeline": TraditionalPipelines(),
                         })
-
                 with st.spinner("Calculating all the matrices. Please wait ...."):
-                    # eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response)
+                    selected = []
+                    for i in range(len(st.session_state["options"])):
+                            select = st.session_state["options"][i]
+                            selected.append(select)
+                    eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response, selected)
                     st.balloons()
 
-                # with st.expander("Click to see all the evaluation metrics"):
-                    # st.json(eval_result)
+                with st.expander("Click to see all the evaluation metrics"):
+                    st.json(eval_result)
+                    for i in range(len( eval_result["guards"]["evaluations"]["results"])):
+                        st.write("The scores are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"])
 
 
 if __name__ == "__main__":
