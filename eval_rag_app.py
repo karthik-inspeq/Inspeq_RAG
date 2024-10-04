@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import LanceDB
@@ -98,7 +99,12 @@ def user_input(user_question):
     
     return contexts_with_scores, response["output_text"]
 
+def result_to_list(results):
+    eval = []
+    score = []
+    label = []
 
+    return eval, score, label
 def evaluate_all(query, context_lis, response, metrics_list):
     # guard =  st.session_state["eval_models"]["guards"]
     # stat =  st.session_state["eval_models"]["textstat"]
@@ -236,12 +242,26 @@ def main():
                             selected.append(select)
                     eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response, selected)
                     st.balloons()
-
                 with st.expander("Click to see all the evaluation metrics"):
                     st.json(eval_result)
+                    eval = []
+                    score = []
+                    label = []
                     for i in range(len( eval_result["guards"]["evaluations"]["results"])):
                         st.write("The scores are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"])
+                        eval.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"][0])
+                        score.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["actual_value"])
+                        label.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"][0])
+                        st.write()
+                final_result = {
+                    "Metric" : selected,
+                    "Evaluation Result" : eval,
+                    "Score" : score,
+                    "Label" : label
 
+                }
+                df = pd.DataFrame(final_result)
+                st.table(df)
 
 if __name__ == "__main__":
     main()
