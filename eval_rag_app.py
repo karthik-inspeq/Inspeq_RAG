@@ -106,62 +106,14 @@ def result_to_list(results):
 
     return eval, score, label
 def evaluate_all(query, context_lis, response, metrics_list):
-    # guard =  st.session_state["eval_models"]["guards"]
-    # stat =  st.session_state["eval_models"]["textstat"]
-    # comp =  st.session_state["eval_models"]["comparison"]
+
     context = "\n\n".join(context_lis) if len(context_lis) else "no context"
     
     RESULT = {}
 
     RESULT["guards"] = {
         "evaluations" : get_inspeq_evaluation(query, response, context, metrics_list)
-        # "query_injection": guard.prompt_injection_classif(query),
-        # "context_injection": guard.prompt_injection_classif(context),
-        # "query_bias": guard.bias(query),
-        # "context_bias": guard.bias(context),
-        # "response_bias": guard.bias(response),
-        # "query_regex": guard.detect_pattern(query),
-        # "context_regex": guard.detect_pattern(context),
-        # "response_regex": guard.detect_pattern(response),
-        # "query_toxicity": guard.toxicity(query),
-        # "context_toxicity": guard.toxicity(context),
-        # "response_toxicity":  guard.toxicity(response),
-        # "query_sentiment": guard.sentiment(query),
-        # "query_polarity": guard.polarity(query),
-        # "context_polarity":guard.polarity(context), 
-        # "response_polarity":guard.polarity(response), 
-        # "query_response_hallucination" : comp.hallucinations(query, response),
-        # "context_response_hallucination" : comp.hallucinations(context, response),
-        # "query_response_hallucination" : comp.contradiction(query, response),
-        # "context_response_hallucination" : comp.contradiction(context, response),
     }
-
-    # RESULT["guards"].update(guard.harmful_refusal_guards(query, context, response))
-
-    # tmp = {}
-    # for key, val in comp.ref_focussed_metrics(query, response).items():
-    #     tmp[f"query_response_{key}"] = val
-
-    # for key, val in comp.ref_focussed_metrics(context, response).items():
-    #     tmp[f"context_response_{key}"] = val
-    
-    # RESULT["reference_based_metrics"] = tmp
-    
-    
-    # tmp = {}
-    # for key, val in comp.string_similarity(query, response).items():
-    #     tmp[f"query_response_{key}"] = val
-
-    # for key, val in comp.string_similarity(context, response).items():
-    #     tmp[f"context_response_{key}"] = val
-    
-    # RESULT["string_similarities"] = tmp
-
-    # tmp = {}
-    # for key, val in stat.calculate_text_stat(response).items():
-    #     tmp[f"result_{key}"] = val
-    # RESULT["response_text_stats"] = tmp
-
     RESULT["execution_times"] = (st.session_state["eval_models"]["app_metrics"].exec_times)
     
     return RESULT
@@ -170,9 +122,9 @@ def evaluate_all(query, context_lis, response, metrics_list):
 def main():
     st.markdown("""## RAG Pipeline Example""")
     
-    st.info("Note: This is a minimal demo focussing on ***EVALUATION*** so you can do simple Document QA which uses GPT-3.5 without any persistant memory hence no multi-turn chat is available there. If the question is out of context from the document, this will not work so ask the questions related to the document only. You can optimise the workflow by using Re-Rankers, Chunking Strategy, Better models etc but this app runs on CPU right now easily and is about, again, ***EVALUATION***", icon = "ℹ️")
+    st.info("Note: This is a minimal demo focussing on ***EVALUATION***...", icon="ℹ️")
 
-    st.error("WARNING: If you reload the page, everything (model, PDF, key) will have to be loaded again. That's how `streamlit` works", icon = "🚨")
+    st.error("WARNING: If you reload the page...", icon="🚨")
     
     with st.sidebar:
         st.title("Menu:")
@@ -180,85 +132,80 @@ def main():
         st.session_state['INSPEQ_API_KEY'] =  st.text_input("Enter your inspeq API key", type="password", key="inspeq_api_key")
         st.session_state['INSPEQ_PROJECT_ID'] =  st.text_input("Enter your inspeq project ID:", type="password", key="inspeq_project_id")
 
-        _ =  st.number_input("Top-K Contxets to fetch", min_value = 1, max_value = 50, value = 3, step = 1, key="top_k")
-        _ = st.number_input("Chunk Length", min_value = 8, max_value = 4096, value = 512, step = 8, key="chunk_size")
-        _ = st.number_input("Chunk Overlap Length", min_value = 4, max_value = 2048, value = 64, step = 1, key="chunk_overlap")
+        _ =  st.number_input("Top-K Contxets to fetch", min_value=1, max_value=50, value=3, step=1, key="top_k")
+        _ = st.number_input("Chunk Length", min_value=8, max_value=4096, value=512, step=8, key="chunk_size")
+        _ = st.number_input("Chunk Overlap Length", min_value=4, max_value=2048, value=64, step=1, key="chunk_overlap")
 
-        st.session_state["pdf"] = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True, key="pdf_uploader")
-
+        st.session_state["pdf"] = st.file_uploader("Upload your PDF Files...", accept_multiple_files=True, key="pdf_uploader")
 
         if st.session_state["pdf"]:
             if st.session_state["embed_model"] is None: 
                 with st.spinner("Setting up `all-MiniLM-L6-v2` for the first time"):
                     st.session_state["embed_model"] = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-
-            with st.spinner("Processing PDF files..."): raw_text = get_pdf_text(st.session_state["pdf"])
-            with st.spinner("Creating `LanceDB` Vector strores from texts..."):
+            with st.spinner("Processing PDF files..."):
+                raw_text = get_pdf_text(st.session_state["pdf"])
+            with st.spinner("Creating `LanceDB` Vector stores from texts..."):
                 _, exec_time = build_vector_store(raw_text)
                 st.session_state["eval_models"]["app_metrics"].exec_times["chunk_creation_time"] = exec_time
                 st.success("Done")
 
-
-    if not st.session_state['api_key']: st.warning("Enter OpenAI API Key to proceed")
-    elif not st.session_state["pdf"]: st.warning("Upload a PDf file")
+    if not st.session_state['api_key']:
+        st.warning("Enter OpenAI API Key to proceed")
+    elif not st.session_state["pdf"]:
+        st.warning("Upload a PDF file")
     else:
         st.markdown("""#### Ask a Question from the PDF file""")
-        user_question = st.text_input("", key="user_question")
-
-        if user_question and st.session_state['api_key']:  # Ensure API key and user question are provided
-            with st.spinner("Getting Response from LLM..."):
-                contexts_with_scores, response = user_input(user_question)
         
-            st.warning("There are 5 major types metrics computed below having multiple sub metrics. Also, 2 abstract classes are defined `LLMasEvaluator` (to use any LLM as a judge) and `TraditionalPipelines` (for Topics, NER, POS etc)", icon="🤖")
+        # Form for asking questions and evaluating
+        with st.form(key="my_form"):
+            user_question = st.text_input("Enter your question:", key="user_question")  # Move input inside the form
+            
             list_of_metrics = ["RESPONSE_TONE", "ANSWER_RELEVANCE", "FACTUAL_CONSISTENCY", "CONCEPTUAL_SIMILARITY", "READABILITY", "COHERENCE", "CLARITY", 
-                                                                               "DIVERSITY", "CREATIVITY", "NARRATIVE_CONTINUITY", "GRAMMATICAL_CORRECTNESS", "PROMPT_INJECTION", 
-                                                                               "DATA_LEAKAGE", "INSECURE_OUTPUT", "INVISIBLE_TEXT", "TOXICITY", "BLEU_SCORE", "COMPRESSION_SCORE", 
-                                                                               "COSINE_SIMILARITY_SCORE", "FUZZY_SCORE", "METEOR_SCORE", "ROUGE_SCORE"]
-            # Create a form to batch widget interactions
-            with st.form(key="my_form"):
-                selected_metrics = st.multiselect(
-                    "Select the metrics to Evaluate",
-                    list_of_metrics,
-                    default=st.session_state["options"]
-                )
-                submit_button = st.form_submit_button(label="Evaluate Metrics")
+                               "DIVERSITY", "CREATIVITY", "NARRATIVE_CONTINUITY", "GRAMMATICAL_CORRECTNESS", "PROMPT_INJECTION", 
+                               "DATA_LEAKAGE", "INSECURE_OUTPUT", "INVISIBLE_TEXT", "TOXICITY", "BLEU_SCORE", "COMPRESSION_SCORE", 
+                               "COSINE_SIMILARITY_SCORE", "FUZZY_SCORE", "METEOR_SCORE", "ROUGE_SCORE"]
+            selected_metrics = st.multiselect(
+                "Select the metrics to Evaluate",
+                list_of_metrics,
+                default=st.session_state["options"]
+            )
+            submit_button = st.form_submit_button(label="Evaluate")  # Form submission button
 
-            # Process the form submission
-            if submit_button:
-                st.session_state["options"] = selected_metrics
-                if len(st.session_state["eval_models"]) <= 1:
-                    st.session_state["eval_models"].update({
-                        # "guards": IOGuards(),
-                        # "textstat": TextStat(),
-                        # "comparison": ComparisonMetrics(),
-                        # "llm_eval": LLMasEvaluator(),
-                        # "traditional_pipeline": TraditionalPipelines(),
-                        })
-                with st.spinner("Calculating all the matrices. Please wait ...."):
+        if submit_button:  # Only process when Evaluate button is pressed
+            st.session_state["options"] = selected_metrics
+            if user_question and st.session_state['api_key']:  # Ensure question and API key are provided
+                with st.spinner("Getting Response from LLM..."):
+                    contexts_with_scores, response = user_input(user_question)
+
+                with st.spinner("Calculating all the matrices. Please wait..."):
                     selected = []
                     for i in range(len(st.session_state["options"])):
-                            select = st.session_state["options"][i]
-                            selected.append(select)
+                        selected.append(st.session_state["options"][i])
+                    
                     eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response, selected)
                     st.balloons()
+
                 with st.expander("Click to see all the evaluation metrics"):
                     st.json(eval_result)
+                    metric_name = []
                     eval = []
                     score = []
                     label = []
-                    for i in range(len( eval_result["guards"]["evaluations"]["results"])):
-                        st.write("The scores are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"])
+                    for i in range(len(eval_result["guards"]["evaluations"]["results"])):
+                        name = eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_name"]
+                        new_name = name.replace("_EVALUATION", "")
+                        metric_name.append(new_name)
                         eval.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"][0])
                         score.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["actual_value"])
                         label.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"][0])
-                        st.write()
-                final_result = {
-                    "Metric" : selected,
-                    "Evaluation Result" : eval,
-                    "Score" : score,
-                    "Label" : label
+                    st.write("The labels are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"])
 
+                final_result = {
+                    "Metric": metric_name,
+                    "Evaluation Result": eval,
+                    "Score": score,
+                    "Label": label
                 }
                 df = pd.DataFrame(final_result)
                 st.table(df)
