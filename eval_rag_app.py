@@ -120,11 +120,24 @@ def evaluate_all(query, context_lis, response, metrics_list):
 
 
 def main():
-    st.markdown("""## RAG Pipeline Example""")
+    st.markdown("""## Inspeq RAG Demo""")
     
-    st.info("Note: This is a minimal demo focussing on ***EVALUATION***...", icon="ℹ️")
+    st.info("""
+    ### Usage Note:
 
-    st.error("WARNING: If you reload the page...", icon="🚨")
+    **Key Features**:
+    1. **Document Upload**: Upload PDF documents for text analysis.
+    2. **Vector Store Creation**: Create efficient vector stores using LanceDB.
+    3. **Question Answering**: Ask questions related to your PDFs, and GPT-3.5 will provide detailed answers.
+    """)
+    st.info("""
+     **How to Use**:
+    1. Enter your **OpenAI** and **Inspeq API Keys**.
+    2. Upload PDF files to analyze.
+    3. Adjust chunk size, overlap, and top-K contexts for customization.
+    4. Ask questions and select metrics for evaluation.
+    5. View the response and evaluation results in a detailed table.
+        """)
     
     with st.sidebar:
         st.title("Menu:")
@@ -150,8 +163,8 @@ def main():
                 st.session_state["eval_models"]["app_metrics"].exec_times["chunk_creation_time"] = exec_time
                 st.success("Done")
 
-    if not st.session_state['api_key']:
-        st.warning("Enter OpenAI API Key to proceed")
+    if not (st.session_state['api_key'] and st.session_state['INSPEQ_API_KEY'] and st.session_state['INSPEQ_PROJECT_ID']) :
+        st.warning("Enter OpenAI API Key, Inspeq API key and Inspeq Project ID to proceed")
     elif not st.session_state["pdf"]:
         st.warning("Upload a PDF file")
     else:
@@ -170,7 +183,7 @@ def main():
                 list_of_metrics,
                 default=st.session_state["options"]
             )
-            submit_button = st.form_submit_button(label="Evaluate")  # Form submission button
+            submit_button = st.form_submit_button(label="Generate and Evaluate")  # Form submission button
 
         if submit_button:  # Only process when Evaluate button is pressed
             st.session_state["options"] = selected_metrics
