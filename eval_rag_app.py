@@ -122,22 +122,25 @@ def evaluate_all(query, context_lis, response, metrics_list):
 def main():
     st.markdown("""## Inspeq RAG Demo""")
     
-    st.info("""
-    ### Usage Note:
 
-    **Key Features**:
-    1. **Document Upload**: Upload PDF documents for text analysis.
-    2. **Vector Store Creation**: Create efficient vector stores using LanceDB.
-    3. **Question Answering**: Ask questions related to your PDFs, and GPT-3.5 will provide detailed answers.
-    """)
-    st.info("""
-     **How to Use**:
-    1. Enter your **OpenAI** and **Inspeq API Keys**.
-    2. Upload PDF files to analyze.
-    3. Adjust chunk size, overlap, and top-K contexts for customization.
-    4. Ask questions and select metrics for evaluation.
-    5. View the response and evaluation results in a detailed table.
+    with st.expander("### 📝 Usage Note"):
+        st.markdown("""
+        **Key Features**:
+        1. **Document Upload**: Easily upload and analyze PDF documents for text-based insights.
+        2. **Vector Store Creation**: Build efficient and searchable vector stores with LanceDB for enhanced data retrieval.
+        3. **Question Answering**: Ask in-depth questions related to your uploaded PDFs, with GPT-3.5 providing detailed, context-aware answers.
+        4. **Inspeq Metrics Evaluation**: Use the Inspeq API to assess and monitor the performance of language models (LLMs) based on customized metrics.
         """)
+
+    with st.expander("### 🛠️ How to Use"):
+        st.markdown("""
+        1. Enter your **OpenAI** and **Inspeq API Keys**.
+        2. Upload PDF files to analyze.
+        3. Adjust chunk size, overlap, and top-K contexts for customization.
+        4. Ask questions and select metrics for evaluation.
+        5. View the response and evaluation results from the Inspeq SDK in a detailed table.
+        """)
+
     
     with st.sidebar:
         st.title("Menu:")
