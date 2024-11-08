@@ -159,9 +159,9 @@ def main():
                 with st.spinner("Setting up `all-MiniLM-L6-v2` for the first time"):
                     st.session_state["embed_model"] = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-            with st.spinner("Processing PDF files..."):
+            # with st.spinner("Processing PDF files..."):
                 raw_text = get_pdf_text(st.session_state["pdf"])
-            with st.spinner("Creating `LanceDB` Vector stores from texts..."):
+            # with st.spinner("Creating `LanceDB` Vector stores from texts..."):
                 _, exec_time = build_vector_store(raw_text)
                 st.session_state["eval_models"]["app_metrics"].exec_times["chunk_creation_time"] = exec_time
                 st.success("Done")
@@ -200,21 +200,26 @@ def main():
                         selected.append(st.session_state["options"][i])
                     
                     eval_result = evaluate_all(user_question, [item.page_content for item in contexts_with_scores], response, selected)
-                    st.balloons()
 
                 with st.expander("Click to see all the evaluation metrics"):
                     st.json(eval_result)
+                    error_logs = []
                     metric_name = []
                     eval = []
                     score = []
                     label = []
                     for i in range(len(eval_result["guards"]["evaluations"]["results"])):
+                        eval_status =  eval_result["guards"]["evaluations"]["results"][i]["metric_evaluation_status"]
                         name = eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_name"]
                         new_name = name.replace("_EVALUATION", "")
-                        metric_name.append(new_name)
-                        eval.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"][0])
-                        score.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["actual_value"])
-                        label.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"][0])
+                        if eval_status != "EVAL_FAIL":
+                            metric_name.append(new_name)
+                            eval.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["threshold"][0])
+                            score.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["actual_value"])
+                            label.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"][0])
+                        else:
+                            error_logs.append(eval_result["guards"]["evaluations"]["results"][i]["error_message"])
+                            continue
                     st.write("The labels are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"])
 
                 final_result = {
@@ -225,6 +230,11 @@ def main():
                 }
                 df = pd.DataFrame(final_result)
                 st.table(df)
+                # If there are any errors when accessing the API
+                if error_logs:
+                    with st.expander("Error Logs"):
+                        for error in error_logs:
+                            st.write(error)
 
 if __name__ == "__main__":
     main()
