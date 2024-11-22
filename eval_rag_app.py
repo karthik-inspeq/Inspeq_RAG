@@ -35,7 +35,7 @@ def get_inspeq_evaluation(prompt, response, context, metric):
         output = inspeq_eval.evaluate_llm_task(
             metrics_list=metrics_list,
             input_data=input_data,
-            task_name="capital_question"
+            task_name="task"
         )
         return output
     except Exception as e:
@@ -172,7 +172,8 @@ def main():
         st.warning("Upload a PDF file")
     else:
         st.markdown("""#### Ask a Question from the PDF file""")
-        
+        if "options" not in st.session_state:  # Ensure session state is initialized
+            st.session_state["options"] = []
         # Form for asking questions and evaluating
         with st.form(key="my_form"):
             user_question = st.text_input("Enter your question:", key="user_question")  # Move input inside the form
@@ -189,7 +190,10 @@ def main():
             submit_button = st.form_submit_button(label="Generate and Evaluate")  # Form submission button
 
         if submit_button:  # Only process when Evaluate button is pressed
-            st.session_state["options"] = selected_metrics
+            if not selected_metrics:
+                st.session_state["options"] = []  # Reset session state if no metrics are selected
+            else:
+                st.session_state["options"] = selected_metrics 
             if user_question and st.session_state['api_key']:  # Ensure question and API key are provided
                 with st.spinner("Getting Response from LLM..."):
                     contexts_with_scores, response = user_input(user_question)
@@ -219,7 +223,6 @@ def main():
                             label.append(eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"][0])
                         else:
                             error_logs.append(eval_result["guards"]["evaluations"]["results"][i]["error_message"])
-                            continue
                     st.write("The labels are ", eval_result["guards"]["evaluations"]["results"][i]["evaluation_details"]["metric_labels"])
 
                 final_result = {
@@ -235,6 +238,7 @@ def main():
                     with st.expander("Error Logs"):
                         for error in error_logs:
                             st.write(error)
+                st.session_state["options"] = []    # reinitialise the state to blank after the evaluation is done
 
 if __name__ == "__main__":
     main()
