@@ -10,6 +10,7 @@ python-dotenv
 # tiktoken
 # textstat
 # evaluate
+sentence_transformers
 # tensorflow
 # bert-score
 # spacy
@@ -21,4 +22,5 @@ python-dotenv
 # python-Levenshtein
 # levenshtein
 # rank_bm25
+tf-keras
 lancedb
