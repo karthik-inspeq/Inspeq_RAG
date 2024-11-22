@@ -228,7 +228,7 @@ def main():
                 final_result = {
                     "Metric": metric_name,
                     "Evaluation Result": eval,
-                    "Score": [round(x, 2) for x in score],
+                    "Score": [round(float(x), 2) for x in score],
                     "Label": label
                 }
                 df = pd.DataFrame(final_result)
